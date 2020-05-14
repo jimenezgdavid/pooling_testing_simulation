@@ -52,10 +52,10 @@ facilidad e interpletabilidad se emplea una función logística para calcular
 dicha probabilidad.
 
 $$ p_{ij} = \frac{1}{1+e^{-l_j}} $$
-$$ l_{ij} = \alpha_{fam}*n_{fam_{ij}} + \alpha_{edi}*n_{edi_{ij}}+\alpha_{vec_{ij}}*n_{vec} + \alpha_{t}*n_{t_{i}} $$
+$$ l_{ij} = \alpha_{fam}*n_{fam_{ij}} + \alpha_{edi}*n_{edi_{ij}}+\alpha_{vec_{ij}}*n_{vec} + \alpha_{p_{0}}*p_{0_i} $$
 Donde se emplea para el paso de tiempo que se está analizando $t_i$ 
-el número de contagiados $n_x$ de cada uno de los grupos a los
-que pertenece el individuo $j$, el todal de contagiados $n_t$ y ciertos pesos 
+el porcentaje de personas infectadas $n_x$ de cada uno de los grupos a los
+que pertenece el individuo $j$, el porcentaje todal de contagiados $p_{0_i}$ y ciertos pesos 
 $\alpha_x$ para así determinar la probabilidad de que el el individuo $j$ esté
 contagiado en el siguiente paso de tiempo $t_{i+1}$.
 
@@ -65,7 +65,7 @@ createInfPFun<- function(modelCoefFact = 0.5,
                          modelCoef=list(fam = log(2),
                                         buil = log(1.5), 
                                         neib = log(1.25),
-                                        p0 = log(10))){
+                                        p0 = log(5))){
       
       InfProb <- function(fam, buil, nei, p0){
             mapply(
@@ -180,7 +180,9 @@ nextIter<-function(sus, threshold, p0){
    
       sus<-sus%>%
             mutate(infP = InfProb (infFam,infBuil,infNei,p0),
-                   inf = inf | infP > (threshold+runif(1,-0.05,+0.05)),
+                   inf = inf | (infP > (threshold+runif(length(sus),
+                                                       min = -0.05,
+                                                       max = +0.05))),
             ) %>%
             group_by(fam)%>%
             mutate(infFam = sum(inf))%>%
@@ -205,15 +207,22 @@ infectados.
 
 
 p0<- sum(sus$inf) / nrow(sus)
+print(p0)
 sus<- nextIter(sus, threshold = 0.70, p0 = p0)
 p0<- sum(sus$inf) / nrow(sus)
+print(p0)
 sus<- nextIter(sus, threshold = 0.70, p0 = p0)
 p0<- sum(sus$inf) / nrow(sus)
+print(p0)
 sus<- nextIter(sus, threshold = 0.70, p0 = p0)
-p0<- sum(sus$inf) / nrow(sus)
+p0<-sum(sus$inf) / nrow(sus)
+print(p0)
 sus<- nextIter(sus, threshold = 0.70, p0 = p0)
-p0<- sum(sus$inf) / nrow(sus)
-p0
+p0<-sum(sus$inf) / nrow(sus)
+print(p0)
+sus<- nextIter(sus, threshold = 0.70, p0 = p0)
+p0<-sum(sus$inf) / nrow(sus)
+print(p0)
 
 ```
 
@@ -229,5 +238,239 @@ sus%>%
     theme_minimal()
 
 ```
+
+### Procedimiento de pruebas en grupo (pooling)
+
+Una vez con una población contagiada definidad entonces se puede probar el 
+uso de *pooling* para reducir el número total de pruebas necesarias para 
+identificar los casos positivos $T$ . Si suponemos que sólamente se efectuará
+una donda de agrupaciones (procedimiento no recursivo) y además que los tamaños
+de los grupos $m$ son iguales entonces el total de muestras necesarias para 
+definir como $T = N - d +g$, donde: $d:=$ número de invividuos descartados
+mediante las pruebas grupales, $g:=$ número de grupos. 
+
+Queremos en dicho contexto saber evaluar cuál es el mínimo número esperado de
+$T$ para diferentes proporciones de infección de la población $p0$, diferentes 
+tamaños de grupo $m$ y también diferentes formas de ordenar los grupos. Este 
+último punto es interesante pues, intuitivamente se entiende que poner en grupos
+aparte a las personas con alta probabilidad de estar infectados y a personas
+con baja probabilidad de estar infectados probablemente ayude a aumentar la 
+cantidad de personas descartadas por las pruebas grupales, que, al final es la
+variable más importante para poder reducir el número total de pruebas.
+
+
+Primero nos concentraremos en evaluar el efecto del tamaño del grupo en una
+población con una proporción dada de infectados $p0$. Para ello probaremos
+desde grupos de 2 hasta 64 personas (referenciando el artículo anteriormente
+mencionado).
+
+```{r funcion_pooling, cache=FALSE, echo = F , warning=FALSE}
+
+TGroup<- function(data, 
+                  groupSize = 64, 
+                  arrangeVar = "sus"
+                  ){
+      
+      
+      nGroups<-ceiling(dim(data)[1]/groupSize)
+      
+      group<-rep_len(1:nGroups,length.out = length(data$inf)) %>% sort()
+      
+      nDesc<-
+            data %>%
+            arrange_(arrangeVar)%>%
+            mutate(group = group)%>%
+            group_by(group) %>%
+            mutate(negTest = sum(inf) == 0) %>%
+            ungroup() %>%
+            summarise(nDesc = sum(negTest)) %>%
+            unlist()
+      
+      tibble(arrangeVar = arrangeVar,
+             groupSize = groupSize,
+             totalSus = length(data$inf),
+             nDesc = nDesc,
+             nGroups = nGroups,
+             totalTest = ifelse(groupSize == 1, 
+                                nrow(data), 
+                                nrow(data) - nDesc + nGroups ))
+}
+
+```
+
+
+```{r probando_poblacion_ejemplo, cache=FALSE, echo = F, warning=FALSE }
+groupTest<-lapply(1:64,
+       FUN = function(gSize){
+          bind_rows(
+             TGroup(sus, groupSize = gSize),
+             TGroup(sus, groupSize = gSize,arrangeVar = "fam"),
+             TGroup(sus, groupSize = gSize,arrangeVar = "buil"),
+             TGroup(sus, groupSize = gSize, arrangeVar ="nei"),
+             TGroup(sus, groupSize = gSize, arrangeVar = "infP")
+          )
+       })%>%
+   bind_rows()
+```
+
+```{r graficando_poblacion_ejemplo, cache=FALSE, echo = F }
+
+groupTest%>%
+   mutate(arrangeVar = factor(arrangeVar,
+                              levels = c("sus","fam", "buil","nei", "infP"),
+                              labels = c("ind","fam", "edif","vecin","prob_inf"),
+                              ))%>%
+   ggplot()+
+   geom_point(aes(groupSize, totalTest,col = arrangeVar))+
+   geom_line(aes(groupSize, totalTest,col = arrangeVar))+
+   theme_minimal()+
+   scale_color_viridis_d(begin = 0.1,end=0.9, name = "Variable de agrupación")+
+   theme(legend.position = "top")+
+   xlab("Número de indivíduos por grupo")+
+   ylab("Número total de pruebas necesarias")
+   
+```
+
+Ahora corremos para el caso donde tenemos diferentes niveles de infección
+
+```{r simulando__varios_p0, cache=F, echo = F }
+
+# nSim<- 1
+# pI <- sample( c(0.001, 0.005,0.01), nSim, replace = T) 
+# threshold <- runif(nSim,0.65,0.75)
+# n<- round(runif(nSim,500,3000))
+# 
+# simData<-
+#    mapply(
+#       FUN = function(pIX,thresholdX,nX){
+#          thresholdX<-threshold
+#          nX<-n
+#          pIX<-pI
+#          #Se crea la función de probabilidad de contagio
+#          InfProb<-createInfPFun()
+#          
+#          #Se crea la población inicial
+#          sus<-createSus(N = nX, pI = pIX)
+#          
+#          #Se determina el p0 de la población en la iteración i
+#          
+#          p0 <- sum(sus$inf)/nrow(sus)[1]
+#          i<- 1
+#          
+#          #Se crea la función para iterar en la poblacion
+#          maxIter<-100
+#          
+#          tGroupTest <- NULL
+#          
+#          while( p0 < 0.95 & i <= maxIter ){
+#             
+#             tGroupTest<-
+#                bind_rows(tGroupTest,
+#                          lapply(1:64,FUN = function(gSize){
+#                             bind_rows(
+#                                TGroup(sus, groupSize = gSize),
+#                                TGroup(sus, groupSize = gSize,arrangeVar = "fam"),
+#                                TGroup(sus, groupSize = gSize,arrangeVar = "buil"),
+#                                TGroup(sus, groupSize = gSize, arrangeVar ="nei"),
+#                                TGroup(sus, groupSize = gSize, arrangeVar = "infP")
+#                             )
+#                          })%>%
+#                             bind_rows()%>%
+#                             group_by(arrangeVar)%>%
+#                             mutate(opt = rank(totalTest,ties.method = "first"))%>%
+#                             ungroup()%>%
+#                             filter(opt == 1)%>%
+#                             mutate(opt ="num",
+#                                    i=i,
+#                                    p0 = p0)
+#                )
+#             
+#             sus <- nextIter(sus,threshold = thresholdX, p0 = p0)
+#             p0 <- sum(sus$inf) / nrow(sus)
+#             print(p0)
+#             
+#             i<- i+1
+#             
+#             if(i == maxIter){
+#                print("Stopped withoud converging to p0 = 1, reached iterations limit")
+#             }
+#          }
+#          
+#          tGroupTest%>%
+#             mutate(pI = pIX,
+#                    threshold = thresholdX,
+#                    n = nX)
+#          
+#       }, pI, threshold, n, SIMPLIFY = F
+#    ) %>% 
+#    bind_rows()
+# 
+# simData%>%write.csv("simData.csv", row.names = F)
+
+```
+
+```{r graficando_resultado_simulaciones, cache=FALSE, echo = F }
+
+# simData%>%
+#    mutate(arrangeVar = factor(arrangeVar,
+#                               levels = c("sus","fam", "buil","nei", "infP"),
+#                               labels = c("ind","fam", "edif","vecin","prob_inf"),
+#                               ),
+#           totalTestR=totalTest/totalSus)%>%
+#    filter(totalTestR < 0.95) %>%
+#    ggplot()+
+#    geom_point(aes(groupSize, totalTest,col = arrangeVar))+
+#    
+#    geom_line(aes(groupSize, totalTest,col = arrangeVar))+
+#    theme_minimal()+
+#    scale_color_viridis_d(begin = 0.1,end=0.9, name = "Variable de agrupación")+
+#    theme(legend.position = "top")+
+#    xlab("Número de indivíduos por grupo")+
+#    ylab("Número total de pruebas necesarias")
+   
+```
+
+
+simData %>% 
+
+       mutate(totalTestR=totalTest/totalSus) %>%
+       filter(totalTestR < 0.95) %>%
+       # .[[10]]%>% 
+       ggplot()+
+       geom_smooth(aes(p0,totalTestR, col =arrangeVar ), formula = "y~x")+
+       geom_point(aes(p0,totalTestR,col = arrangeVar))
+
+
+#### Analíticamente (y para el caso sencillo)
+
+Nótese que para $N$ suficientemente grande $g \approx N/m$; además, suponiendo
+dado que $p0$ se distribuye uniformemente en todos los grupos sabemos que la
+esperanza de individuos descartados puede ser definida como:
+$\mathbf{E} (d) = g m(1-p_0)^m   \approx  N(1-p_0)^m$
+
+Para obtener el mínimo número esperado de $T$, dado un $p_0$ entonces 
+minimizamos respecto a $m$.
+
+$$\underset{m}{\operatorname{argmin}}(\mathbf{E}(T)) = 
+\underset{m}{\operatorname{argmin}}((N - N(1-p_0)^m + N/m))=
+\sqrt{\frac{-1}{ln(1-p_0)(1-p_0)^m}}$$
+
+
+### Preguntas interesantes de responder
+
+* ¿Qué pasa si usamos *pooling* no sólo en una primera instancia, sino de forma
+recursiva?
+
+* ¿Qué pasa si usamos tamaños de grupo diferentes en el procedimiento, más
+pequeños para los casos donde la probabilidad de contagio es mayor y más 
+grandes donde la probabilidad de contagio es menor?
+
+### Agradecimientos
+
+En orden alfabético de apellido, 
+Juan José Leitón Montero, 
+Rubén Rodríquez Román, 
+Enrique Saures Apuy, 
+Josué Vargas, 
 
 
