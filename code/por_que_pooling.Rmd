@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
 
 ```
 
@@ -31,12 +32,63 @@ que equivale conceptualmente a un aumento en la capacidad de evaluación.
 
 ## Construcción de la población contagiada
 
-Para la construcción de la población se definen $n$ individuos que pertenecen a
+Para la construcción de la población se definen $N$ individuos que pertenecen a
 familias, que residen en edificios, que están construidos en vencindarios. Se 
 define de forma arbitraria que el número de invididuos por familia es $5$,
 el número de familas por edificio es $2$, el número de de edificios por 
 vencindario es de $10$. Además, se define una tasa inicial de estos indivíduos
-que están contagiados $p_0$ que son diseminados aleatoriamente en la población.
+que están contagiados $p_{0i}$ que son diseminados aleatoriamente en la población.
+
+Es importante notar que esta población tiene las características de una fase
+inicial de la epidemia donde los casos se distribuyen al azar, queremos que,
+al igual que en una población normal los casos de alguna forma se agrupen cerca
+de los grupos sociales donde interactuan. Para ello construimos una función de 
+probabilidad de contagio.
+
+Esta función emplea el número de casos contagiados en los grupos a los que 
+pertenece cada indivíduo y además agrega un componente de aleatoriedad. Por 
+facilidad e interpletabilidad se emplea una función logística para calcular
+dicha probabilidad.
+
+$$ p_{ij} = \frac{1}{1+e^{-l_j}} $$
+$$ l_{ij} = \alpha_{fam}*n_{fam_{ij}} + \alpha_{edi}*n_{edi_{ij}}+\alpha_{vec_{ij}}*n_{vec} + \alpha_{t}*n_{t_{i}} $$
+Donde se emplea para el paso de tiempo que se está analizando $t_i$ 
+el número de contagiados $n_x$ de cada uno de los grupos a los
+que pertenece el individuo $j$, el todal de contagiados $n_t$ y ciertos pesos 
+$\alpha_x$ para así determinar la probabilidad de que el el individuo $j$ esté
+contagiado en el siguiente paso de tiempo $t_{i+1}$.
+
+```{r funcion_probabilidad_contagio, cache=TRUE, echo = FALSE}
+
+createInfPFun<- function(modelCoefFact = 0.5,
+                         modelCoef=list(fam = log(2),
+                                        buil = log(1.5), 
+                                        neib = log(1.25),
+                                        p0 = log(2))){
+      
+      InfProb <- function(fam, buil, nei, p0){
+            mapply(
+                  FUN = function(famX,builX,neiX, p0X){
+                        
+                        l<- modelCoefFact*(famX * modelCoef$fam + 
+                                   builX * modelCoef$buil + 
+                                   neiX * modelCoef$neib + 
+                                   p0X * modelCoef$p0 )
+                        
+                        
+                        p<- 1/(1+exp(-l))
+                        
+                  },
+                  fam,buil,nei,p0
+            )
+            
+      }
+      
+      return(InfProb)
+      
+}
+
+```
 
 ```{r funcion_crear_poblacion, cache=TRUE, echo = FALSE}
 
@@ -81,12 +133,20 @@ createSus <- function(N = 10000, pI = 0.005){
 
 ```
 
-## Including Plots
+```{r crear_poblacion_ejemplo, cache=TRUE}
 
-You can also embed plots, for example:
+#Se crea la función de probabilidad en el ambiente
+InfProb<-createInfPFun()
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+#Se crea la población inicial y se calcula para cada individuo pj
+sus<-createSus(N = 1000, pI = 0.005)
+
+#La tabla de la primera iteración podría verse así
+head(sus, 10)
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+### Función de probabilidad de contagio
+
+
