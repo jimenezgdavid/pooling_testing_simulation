@@ -1,0 +1,92 @@
+---
+title: "¿Por qué Pooling?"
+author: "David Jiménez González"
+date: "5/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Introducción
+
+Esta idea nació como una inquietud a partir un articulo sobre el trabajo de
+Dina Berenbaum disponible en el medio
+[Times of Israel](https://www.timesofisrael.com/to-ease-global-virus-test-bottleneck-israeli-scientists-suggest-pooling-samples/),
+donde se indica la posibilidad de emplear pruebas no sólo a indivíduos con 
+potencial de estar infectados, sino a grupos de ellos. Lo más intrigante de
+este efoque radica en lo sencillo del concepto. Con esto en mente se trata 
+de evaluar las propiedades numéricas de este tipo de tests en una población
+infectada con COVID19 y realizar una evaluación preliminar de las potenciales
+ventajas que este procedimiento podría presentar.
+
+Para ello se construyó una simulación muy sencilla donde se trata de emular las 
+características de una población con diferentes niveles de contagio. Se 
+aprovecha esta simulación para probar diferentes formas de organizar las pruebas
+y el tamaño de las mismas para así de alguna forma "optimizar" el uso de estas,
+que equivale conceptualmente a un aumento en la capacidad de evaluación.
+
+## Construcción de la población contagiada
+
+Para la construcción de la población se definen $n$ individuos que pertenecen a
+familias, que residen en edificios, que están construidos en vencindarios. Se 
+define de forma arbitraria que el número de invididuos por familia es $5$,
+el número de familas por edificio es $2$, el número de de edificios por 
+vencindario es de $10$. Además, se define una tasa inicial de estos indivíduos
+que están contagiados $p_0$ que son diseminados aleatoriamente en la población.
+
+```{r funcion_crear_poblacion, cache=TRUE, echo = FALSE}
+
+createSus <- function(N = 10000, pI = 0.005){
+      
+      nIni<- max(round(N*pI),1)
+      nSus <- N
+      inf <- sample(1:nSus, nIni)
+      nFam <- ceiling(nSus/5)
+      nBuil <- ceiling(nFam/2)
+      nNei <- ceiling(nFam/10)
+      
+      nei <- tibble(nei = 1:nNei,
+                    lng = sample(1:nNei,nNei), 
+                    lat = sample(1:nNei,nNei))
+      
+      buil <- tibble(buil = 1:nBuil,
+                     nei = sample(1:nNei, size = nBuil , replace = T))%>%
+            left_join(nei,by = "nei")
+      
+      fam <- tibble(fam = 1:nFam,
+                    buil = sample(1:nBuil, size = nFam , replace = T))%>%
+            left_join(buil, by ="buil")
+      
+      sus <- tibble(sus = 1:nSus,
+                    fam = sample(1:nFam, size = nSus, replace = T),
+                    inf = sus %in% inf)%>%
+            left_join(fam, by ="fam")%>%
+            group_by(fam)%>%
+            mutate(infFam = sum(inf))%>%
+            ungroup()%>%
+            group_by(buil)%>%
+            mutate(infBuil =  sum(inf))%>%
+            ungroup()%>%
+            group_by(nei)%>%
+            mutate(infNei =  sum(inf))%>%
+            ungroup()%>%
+            mutate(infP = InfProb (infFam,infBuil,infNei,nIni/nSus))
+            
+      return(sus)
+}
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
