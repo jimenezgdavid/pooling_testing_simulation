@@ -65,7 +65,7 @@ createInfPFun<- function(modelCoefFact = 0.5,
                          modelCoef=list(fam = log(2),
                                         buil = log(1.5), 
                                         neib = log(1.25),
-                                        p0 = log(5))){
+                                        p0 = log(2))){
       
       InfProb <- function(fam, buil, nei, p0){
             mapply(
@@ -180,9 +180,9 @@ nextIter<-function(sus, threshold, p0){
    
       sus<-sus%>%
             mutate(infP = InfProb (infFam,infBuil,infNei,p0),
-                   inf = inf | (infP > (threshold+runif(length(sus),
-                                                       min = -0.05,
-                                                       max = +0.05))),
+                   inf = inf | (infP > (threshold+rnorm(n =length(sus),
+                                                        mean = 0,
+                                                        sd = 0.10))),
             ) %>%
             group_by(fam)%>%
             mutate(infFam = sum(inf))%>%
@@ -204,25 +204,14 @@ Luego de unas cuantas interaciones la población aumenta su número de casos
 infectados. 
 
 ```{r actualizar_poblacion, cache=FALSE, echo = T}
+p0<- sum(sus$inf) / nrow(sus)
+print(p0)
+for(i in 1:4){
+   sus<- nextIter(sus, threshold = 0.8, p0 = p0)
+   p0<- sum(sus$inf) / nrow(sus)
+   print(paste0("p0 = ",p0))
+}
 
-
-p0<- sum(sus$inf) / nrow(sus)
-print(p0)
-sus<- nextIter(sus, threshold = 0.70, p0 = p0)
-p0<- sum(sus$inf) / nrow(sus)
-print(p0)
-sus<- nextIter(sus, threshold = 0.70, p0 = p0)
-p0<- sum(sus$inf) / nrow(sus)
-print(p0)
-sus<- nextIter(sus, threshold = 0.70, p0 = p0)
-p0<-sum(sus$inf) / nrow(sus)
-print(p0)
-sus<- nextIter(sus, threshold = 0.70, p0 = p0)
-p0<-sum(sus$inf) / nrow(sus)
-print(p0)
-sus<- nextIter(sus, threshold = 0.70, p0 = p0)
-p0<-sum(sus$inf) / nrow(sus)
-print(p0)
 
 ```
 
@@ -333,112 +322,110 @@ groupTest%>%
 
 Ahora corremos para el caso donde tenemos diferentes niveles de infección
 
-```{r simulando__varios_p0, cache=F, echo = F }
+```{r simulando__varios_p0, cache=T, echo = F }
 
-# nSim<- 1
-# pI <- sample( c(0.001, 0.005,0.01), nSim, replace = T) 
-# threshold <- runif(nSim,0.65,0.75)
-# n<- round(runif(nSim,500,3000))
-# 
-# simData<-
-#    mapply(
-#       FUN = function(pIX,thresholdX,nX){
-#          thresholdX<-threshold
-#          nX<-n
-#          pIX<-pI
-#          #Se crea la función de probabilidad de contagio
-#          InfProb<-createInfPFun()
-#          
-#          #Se crea la población inicial
-#          sus<-createSus(N = nX, pI = pIX)
-#          
-#          #Se determina el p0 de la población en la iteración i
-#          
-#          p0 <- sum(sus$inf)/nrow(sus)[1]
-#          i<- 1
-#          
-#          #Se crea la función para iterar en la poblacion
-#          maxIter<-100
-#          
-#          tGroupTest <- NULL
-#          
-#          while( p0 < 0.95 & i <= maxIter ){
-#             
-#             tGroupTest<-
-#                bind_rows(tGroupTest,
-#                          lapply(1:64,FUN = function(gSize){
-#                             bind_rows(
-#                                TGroup(sus, groupSize = gSize),
-#                                TGroup(sus, groupSize = gSize,arrangeVar = "fam"),
-#                                TGroup(sus, groupSize = gSize,arrangeVar = "buil"),
-#                                TGroup(sus, groupSize = gSize, arrangeVar ="nei"),
-#                                TGroup(sus, groupSize = gSize, arrangeVar = "infP")
-#                             )
-#                          })%>%
-#                             bind_rows()%>%
-#                             group_by(arrangeVar)%>%
-#                             mutate(opt = rank(totalTest,ties.method = "first"))%>%
-#                             ungroup()%>%
-#                             filter(opt == 1)%>%
-#                             mutate(opt ="num",
-#                                    i=i,
-#                                    p0 = p0)
-#                )
-#             
-#             sus <- nextIter(sus,threshold = thresholdX, p0 = p0)
-#             p0 <- sum(sus$inf) / nrow(sus)
-#             print(p0)
-#             
-#             i<- i+1
-#             
-#             if(i == maxIter){
-#                print("Stopped withoud converging to p0 = 1, reached iterations limit")
-#             }
-#          }
-#          
-#          tGroupTest%>%
-#             mutate(pI = pIX,
-#                    threshold = thresholdX,
-#                    n = nX)
-#          
-#       }, pI, threshold, n, SIMPLIFY = F
-#    ) %>% 
-#    bind_rows()
-# 
-# simData%>%write.csv("simData.csv", row.names = F)
+nSim<- 10
+
+pI <- sample( c(0.001, 0.005,0.01), nSim, replace = T)
+threshold <- runif(nSim,0.7,0.8)
+n<- round(runif(nSim,500,3000))
+
+simData<-
+   mapply(
+      FUN = function(pIX,thresholdX,nX){
+         # thresholdX<-threshold
+         # nX<-n
+         # pIX<-pI
+         #Se crea la función de probabilidad de contagio
+         InfProb<-createInfPFun()
+
+         #Se crea la población inicial
+         sus<-createSus(N = nX, pI = pIX)
+
+         #Se determina el p0 de la población en la iteración i
+         p0 <- sum(sus$inf)/nrow(sus)[1]
+         
+         i<- 1
+
+         #Se crea la función para iterar en la poblacion
+         maxIter<-200
+
+         tGroupTest <- NULL
+
+         while( p0 < 0.95 & i <= maxIter ){
+
+            tGroupTest<-
+               bind_rows(tGroupTest,
+                         lapply(1:64,FUN = function(gSize){
+                            bind_rows(
+                               TGroup(sus, groupSize = gSize),
+                               TGroup(sus, groupSize = gSize,arrangeVar = "fam"),
+                               TGroup(sus, groupSize = gSize,arrangeVar = "buil"),
+                               TGroup(sus, groupSize = gSize, arrangeVar ="nei"),
+                               TGroup(sus, groupSize = gSize, arrangeVar = "infP")
+                            )
+                         })%>%
+                            bind_rows()%>%
+                            group_by(arrangeVar)%>%
+                            mutate(opt = rank(totalTest,ties.method = "first"))%>%
+                            ungroup()%>%
+                            filter(opt == 1)%>%
+                            mutate(opt ="num",
+                                   i=i,
+                                   p0 = p0)
+               )
+            
+            p02<-sum(sus$inf) / nrow(sus)
+            while(p0  == p02 & i <= maxIter){
+               sus <- nextIter(sus,threshold = thresholdX, p0 = p0)
+               p02<-sum(sus$inf) / nrow(sus)
+               i<-i+1
+            }
+            
+            p0 <- sum(sus$inf) / nrow(sus)
+            print(p0)
+
+
+            if(i == maxIter){
+               print("Stopped withoud converging to p0 = 1, reached iterations limit")
+            }
+         }
+
+         tGroupTest%>%
+            mutate(pI = pIX,
+                   threshold = thresholdX,
+                   n = nX)
+
+      }, pI, threshold, n, SIMPLIFY = F
+   ) %>%
+   bind_rows()
+
+simData%>%write.csv("simData.csv", row.names = F)
 
 ```
 
 ```{r graficando_resultado_simulaciones, cache=FALSE, echo = F }
+plotly::ggplotly(
+   simData%>%
+   mutate(arrangeVar = factor(arrangeVar,
+                              levels = c("sus","fam", "buil","nei", "infP"),
+                              labels = c("ind","fam", "edif","vecin","prob_inf"),
+                              ),
+          totalTestR=totalTest/totalSus)%>%
+   filter(totalTestR < 0.95) %>%
+   ggplot()+
+   geom_point(aes(p0, totalTestR,col = arrangeVar), 
+              alpha = 0.75,
+              shape = 19,
+              size = 1)+
+   theme_minimal()+
+   scale_color_viridis_d(begin = 0.1,end=0.9, name = "Agrupado por")+
+   xlab("Porcentaje infectado de la población  (%)")+
+   ylab("Porcentaje necesario de pruebas  (%)")
+)
 
-# simData%>%
-#    mutate(arrangeVar = factor(arrangeVar,
-#                               levels = c("sus","fam", "buil","nei", "infP"),
-#                               labels = c("ind","fam", "edif","vecin","prob_inf"),
-#                               ),
-#           totalTestR=totalTest/totalSus)%>%
-#    filter(totalTestR < 0.95) %>%
-#    ggplot()+
-#    geom_point(aes(groupSize, totalTest,col = arrangeVar))+
-#    
-#    geom_line(aes(groupSize, totalTest,col = arrangeVar))+
-#    theme_minimal()+
-#    scale_color_viridis_d(begin = 0.1,end=0.9, name = "Variable de agrupación")+
-#    theme(legend.position = "top")+
-#    xlab("Número de indivíduos por grupo")+
-#    ylab("Número total de pruebas necesarias")
    
 ```
-
-
-simData %>% 
-
-       mutate(totalTestR=totalTest/totalSus) %>%
-       filter(totalTestR < 0.95) %>%
-       # .[[10]]%>% 
-       ggplot()+
-       geom_smooth(aes(p0,totalTestR, col =arrangeVar ), formula = "y~x")+
-       geom_point(aes(p0,totalTestR,col = arrangeVar))
 
 
 #### Analíticamente (y para el caso sencillo)
