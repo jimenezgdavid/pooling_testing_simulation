@@ -37,7 +37,8 @@ familias, que residen en edificios, que están construidos en vencindarios. Se
 define de forma arbitraria que el número de invididuos por familia es $5$,
 el número de familas por edificio es $2$, el número de de edificios por 
 vencindario es de $10$. Además, se define una tasa inicial de estos indivíduos
-que están contagiados $p_{0i}$ que son diseminados aleatoriamente en la población.
+que están contagiados $p_{0i}$ que son diseminados aleatoriamente en la 
+población.
 
 Es importante notar que esta población tiene las características de una fase
 inicial de la epidemia donde los casos se distribuyen al azar, queremos que,
@@ -58,13 +59,13 @@ que pertenece el individuo $j$, el todal de contagiados $n_t$ y ciertos pesos
 $\alpha_x$ para así determinar la probabilidad de que el el individuo $j$ esté
 contagiado en el siguiente paso de tiempo $t_{i+1}$.
 
-```{r funcion_probabilidad_contagio, cache=TRUE, echo = FALSE}
+```{r funcion_probabilidad_contagio, cache=FALSE, echo = FALSE}
 
 createInfPFun<- function(modelCoefFact = 0.5,
                          modelCoef=list(fam = log(2),
                                         buil = log(1.5), 
                                         neib = log(1.25),
-                                        p0 = log(2))){
+                                        p0 = log(10))){
       
       InfProb <- function(fam, buil, nei, p0){
             mapply(
@@ -90,7 +91,7 @@ createInfPFun<- function(modelCoefFact = 0.5,
 
 ```
 
-```{r funcion_crear_poblacion, cache=TRUE, echo = FALSE}
+```{r funcion_crear_poblacion, cache=FALSE, echo = FALSE}
 
 createSus <- function(N = 10000, pI = 0.005){
       
@@ -126,14 +127,16 @@ createSus <- function(N = 10000, pI = 0.005){
             group_by(nei)%>%
             mutate(infNei =  sum(inf))%>%
             ungroup()%>%
-            mutate(infP = InfProb (infFam,infBuil,infNei,nIni/nSus))
+            mutate(infP = InfProb (infFam,infBuil,infNei,nIni/nSus)) 
             
       return(sus)
 }
 
 ```
 
-```{r crear_poblacion_ejemplo, cache=TRUE}
+```{r crear_poblacion_ejemplo, cache=FALSE}
+
+set.seed(5)
 
 #Se crea la función de probabilidad en el ambiente
 InfProb<-createInfPFun()
@@ -142,11 +145,89 @@ InfProb<-createInfPFun()
 sus<-createSus(N = 1000, pI = 0.005)
 
 #La tabla de la primera iteración podría verse así
-head(sus, 10)
+head(sus, 5)
+
+```
+
+Para visualizar de alguna forma los vecindarios le asignamos de
+forma aleatoria a los vecindarios una longitud y latitud.
+
+```{r presentar_poblacion, cache=FALSE, echo = F }
+
+set.seed(0)
+sus%>%
+    ggplot()+
+    geom_jitter(aes(lng,lat,col = inf, alpha= inf), width = 1, height = 1,)+
+    scale_color_manual(values= c("grey50","red"))+
+    scale_alpha_manual(values =c(0.3,0.80))+
+    theme_minimal()
+
+```
+
+Para obtener los casos contagiados en el tiempo $t_{i+1}$ se toma el valor de 
+probabilidad para cada individuo y se determina si el mismo está por encima de
+un umbral definido como $u_{ij} = u_0 + U(-0.05, 0.05)$ donde $u_0$ es un valor
+base y a este se le agrega el valor de una distribución uniforme. Si en efecto
+se encuentra por encima del umbral o bien ya estaba contagiado la condición del
+indivíduo hasta la última interación será como contagiado. Nótese que en este
+modelo no se tienen casos recuperados ya que la finalidad es luego, para 
+poblaciones con diferentes niveles de contagio evaluar el uso de la metodología
+anteriormente mencionada.
+
+```{r funcion_siguiente_paso, cache=FALSE, echo = FALSE}
+
+nextIter<-function(sus, threshold, p0){
+   
+      sus<-sus%>%
+            mutate(infP = InfProb (infFam,infBuil,infNei,p0),
+                   inf = inf | infP > (threshold+runif(1,-0.05,+0.05)),
+            ) %>%
+            group_by(fam)%>%
+            mutate(infFam = sum(inf))%>%
+            ungroup()%>%
+            group_by(buil)%>%
+            mutate(infBuil =  sum(inf))%>%
+            ungroup()%>%
+            group_by(nei)%>%
+            mutate(infNei =  sum(inf))%>%
+            ungroup()
+      
+      return(sus)
+      
+}
+
+```
+
+Luego de unas cuantas interaciones la población aumenta su número de casos
+infectados. 
+
+```{r actualizar_poblacion, cache=FALSE, echo = T}
+
+
+p0<- sum(sus$inf) / nrow(sus)
+sus<- nextIter(sus, threshold = 0.70, p0 = p0)
+p0<- sum(sus$inf) / nrow(sus)
+sus<- nextIter(sus, threshold = 0.70, p0 = p0)
+p0<- sum(sus$inf) / nrow(sus)
+sus<- nextIter(sus, threshold = 0.70, p0 = p0)
+p0<- sum(sus$inf) / nrow(sus)
+sus<- nextIter(sus, threshold = 0.70, p0 = p0)
+p0<- sum(sus$inf) / nrow(sus)
+p0
 
 ```
 
 
-### Función de probabilidad de contagio
+```{r presentar_poblacion_mod, cache=FALSE, echo = F, }
+
+set.seed(0)
+sus%>%
+    ggplot()+
+    geom_jitter(aes(lng,lat,col = inf, alpha= inf), width = 1, height = 1,)+
+    scale_color_manual(values= c("grey50","red"))+
+    scale_alpha_manual(values =c(0.3,0.80))+
+    theme_minimal()
+
+```
 
 
