@@ -15,8 +15,8 @@ library(tidyverse)
 ## Introducción
 
 Esta idea nació como una inquietud a partir un articulo sobre el trabajo de
-Dina Berenbaum disponible en el medio
-[Times of Israel](https://www.timesofisrael.com/to-ease-global-virus-test-bottleneck-israeli-scientists-suggest-pooling-samples/),
+Dina Berenbaum (disponible en el medio 
+[Times of Israel](https://www.timesofisrael.com/to-ease-global-virus-test-bottleneck-israeli-scientists-suggest-pooling-samples/) ),
 donde se indica la posibilidad de emplear pruebas no sólo a indivíduos con 
 potencial de estar infectados, sino a grupos de ellos. Lo más intrigante de
 este efoque radica en lo sencillo del concepto. Con esto en mente se trata 
@@ -24,10 +24,10 @@ de evaluar las propiedades numéricas de este tipo de tests en una población
 infectada con COVID19 y realizar una evaluación preliminar de las potenciales
 ventajas que este procedimiento podría presentar.
 
-Para ello se construyó una simulación muy sencilla donde se trata de emular las 
+Para ello, se construyó una simulación muy sencilla donde se trata de emular las 
 características de una población con diferentes niveles de contagio. Se 
 aprovecha esta simulación para probar diferentes formas de organizar las pruebas
-y el tamaño de las mismas para así de alguna forma "optimizar" el uso de estas,
+y el tamaño de estas para así de alguna forma "optimizar" el uso de estas,
 que equivale conceptualmente a un aumento en la capacidad de evaluación.
 
 ## Construcción de la población contagiada
@@ -35,13 +35,13 @@ que equivale conceptualmente a un aumento en la capacidad de evaluación.
 Para la construcción de la población se definen $N$ individuos que pertenecen a
 familias, que residen en edificios, que están construidos en vencindarios. Se 
 define de forma arbitraria que el número de invididuos por familia es $5$,
-el número de familas por edificio es $2$, el número de de edificios por 
+el número de familas por edificio es $2$ y el número de de edificios por 
 vencindario es de $10$. Además, se define una tasa inicial de estos indivíduos
 que están contagiados $p_{0i}$ que son diseminados aleatoriamente en la 
 población.
 
 Es importante notar que esta población tiene las características de una fase
-inicial de la epidemia donde los casos se distribuyen al azar, queremos que,
+inicial de la epidemia donde los casos se distribuyen al azar. Queremos que,
 al igual que en una población normal los casos de alguna forma se agrupen cerca
 de los grupos sociales donde interactuan. Para ello construimos una función de 
 probabilidad de contagio.
@@ -51,13 +51,13 @@ pertenece cada indivíduo y además agrega un componente de aleatoriedad. Por
 facilidad e interpletabilidad se emplea una función logística para calcular
 dicha probabilidad.
 
-$$ p_{ij} = \frac{1}{1+e^{-l_j}} $$
+$$ p_{ij} = \frac{1}{1+e^{-l_{ij}}} $$
 $$ l_{ij} = \alpha_{fam}*n_{fam_{ij}} + \alpha_{edi}*n_{edi_{ij}}+\alpha_{vec_{ij}}*n_{vec} + \alpha_{p_{0}}*p_{0_i} $$
 Donde se emplea para el paso de tiempo que se está analizando $t_i$ 
 el porcentaje de personas infectadas $n_x$ de cada uno de los grupos a los
-que pertenece el individuo $j$, el porcentaje todal de contagiados $p_{0_i}$ y ciertos pesos 
-$\alpha_x$ para así determinar la probabilidad de que el el individuo $j$ esté
-contagiado en el siguiente paso de tiempo $t_{i+1}$.
+que pertenece el individuo $j$, el porcentaje todal de contagiados $p_{0_i}$ y 
+ciertos pesos $\alpha_x$ para así determinar la probabilidad de que el el 
+individuo $j$ esté contagiado en el siguiente paso de tiempo $t_{i+1}$.
 
 ```{r funcion_probabilidad_contagio, cache=FALSE, echo = FALSE}
 
@@ -145,7 +145,7 @@ InfProb<-createInfPFun()
 sus<-createSus(N = 1000, pI = 0.005)
 
 #La tabla de la primera iteración podría verse así
-head(sus, 5)
+knitr::kable(head(sus, 5)) 
 
 ```
 
@@ -166,12 +166,13 @@ sus%>%
 
 Para obtener los casos contagiados en el tiempo $t_{i+1}$ se toma el valor de 
 probabilidad para cada individuo y se determina si el mismo está por encima de
-un umbral definido como $u_{ij} = u_0 + U(-0.05, 0.05)$ donde $u_0$ es un valor
-base y a este se le agrega el valor de una distribución uniforme. Si en efecto
+un umbral definido como $u_{ij} = u_0 + \mathcal{N}(\mu,\sigma )$ donde $u_0$ 
+es un valor base y a este se le agrega el valor de una distribución normal. 
+Si en efecto
 se encuentra por encima del umbral o bien ya estaba contagiado la condición del
-indivíduo hasta la última interación será como contagiado. Nótese que en este
+indivíduo hasta la última iteración será como contagiado. Nótese que en este
 modelo no se tienen casos recuperados ya que la finalidad es luego, para 
-poblaciones con diferentes niveles de contagio evaluar el uso de la metodología
+poblaciones con diferentes niveles de contagio, evaluar el uso de la metodología
 anteriormente mencionada.
 
 ```{r funcion_siguiente_paso, cache=FALSE, echo = FALSE}
@@ -200,7 +201,7 @@ nextIter<-function(sus, threshold, p0){
 
 ```
 
-Luego de unas cuantas interaciones la población aumenta su número de casos
+Luego de unas cuantas iteraciones la población aumenta su número de casos
 infectados. 
 
 ```{r actualizar_poblacion, cache=FALSE, echo = T}
@@ -230,10 +231,19 @@ sus%>%
 
 ### Procedimiento de pruebas en grupo (pooling)
 
-Una vez con una población contagiada definidad entonces se puede probar el 
-uso de *pooling* para reducir el número total de pruebas necesarias para 
-identificar los casos positivos $T$ . Si suponemos que sólamente se efectuará
-una donda de agrupaciones (procedimiento no recursivo) y además que los tamaños
+El procedimiento de pooling según se entiende implica mezclar las muestras de
+$m$ cantidad de invidíduos en un grupo y detectar ausencia y presencia del
+virus. Este procedimiento es particularmente efectivo cuando se pueden descartar
+grandes cantidades de invidíduos, es decir, cuando la probabilidad de haya un
+indivíduo infectado en cada grupo es baja. De hecho. si esta probabilidad es 
+alta, es probable que la cantidad de muestras necesarias sea mayor a la que se
+requeriría en el caso de hacer pruebas individuales. 
+
+Se aprovechará entonces la definición de población contagiada previamente 
+construída para determinar si uso de *pooling* para reducir el número total 
+de pruebas necesarias para identificar los casos positivos $T$ . 
+Si suponemos que sólamente se efectuará
+una ronda de agrupaciones (procedimiento no recursivo) y además que los tamaños
 de los grupos $m$ son iguales entonces el total de muestras necesarias para 
 definir como $T = N - d +g$, donde: $d:=$ número de invividuos descartados
 mediante las pruebas grupales, $g:=$ número de grupos. 
@@ -247,11 +257,28 @@ con baja probabilidad de estar infectados probablemente ayude a aumentar la
 cantidad de personas descartadas por las pruebas grupales, que, al final es la
 variable más importante para poder reducir el número total de pruebas.
 
-
 Primero nos concentraremos en evaluar el efecto del tamaño del grupo en una
-población con una proporción dada de infectados $p0$. Para ello probaremos
+población con una proporción constante de infectados $p0$. Para ello probaremos
 desde grupos de 2 hasta 64 personas (referenciando el artículo anteriormente
-mencionado).
+mencionado). Para evaluar la intuición de que colocar indivíduos con un nivel
+similar de probabilidad de estar infectados o bien con cierta cercanía aumenta
+la efectividad del procedimiento de *pooling* se ordenan los valores por familia
+por edificio, vencindad y también por probabilidad de estar infectados.
+
+Nótese que al ordenar por alguna de dichas clasificaciones pero para diferentes
+tamaños de grupo existe la probabilidad en algunos casos de que en una prueba 
+se estén testeando más de una famila, edificio, etc.; sin embargo, se está 
+concentrando los casos positivos entre sí y también los casos negativos entre sí
+mejorando así la probabilidad de que existan grupos sin ningún caso. 
+
+Otro punto importante de tratar es que que estamos usando la variable $p_{ij}$ 
+que es la variable con la que de hecho se construyó la simulación. Esto en 
+cierta medida es como emplear un oráculo que me indica la mejor aproximación
+a la probabilidad real de que un indivíduo esté infectado, por lo que los 
+resultados deben ser interpretados con precaución. Cabe resaltar que en este
+caso al ser una variable contínua realmente estamos *ordenando* según $p_{ij}$
+para luego *recortar* esa poblacion ordenada.
+
 
 ```{r funcion_pooling, cache=FALSE, echo = F , warning=FALSE}
 
@@ -287,7 +314,6 @@ TGroup<- function(data,
 
 ```
 
-
 ```{r probando_poblacion_ejemplo, cache=FALSE, echo = F, warning=FALSE }
 groupTest<-lapply(1:64,
        FUN = function(gSize){
@@ -320,11 +346,29 @@ groupTest%>%
    
 ```
 
-Ahora corremos para el caso donde tenemos diferentes niveles de infección
+En la figura anterior se muestra cómo, para la gran mayoría de casos, existe 
+una disminución significativa del número de pruebas necesarias respecto a la
+condición de analizar a todos los invidíduos. Puede observarse que el caso base 
+de *pooling* donde no ser ordena tiene los peores resultados mientas que el
+mejor resultado se obtiene empleando $p_{ij}$ para ordenar.
 
-```{r simulando__varios_p0, cache=T, echo = F }
+Es interesante que para cada una de las agrupaciones el óptimo se alcanza
+en tamaños de grupo distintos, mientras más granular sea la agrupación más 
+pequeño el tamaño de grupo en el que se alcanza una disminución mayor en el 
+número de pruebas necesarias.
 
-nSim<- 10
+En cierta medida los resultados anteriores confirman las intuiciones indicadas
+con anterioridad respecto al valor de ordenar o agrupar antes de realizar el
+procedimiento de *pooling*, hay que comprobar que estos hayazgos se mantienen
+para distintos porcentajes de infección en la población.
+
+Para ello simulamos $100$ poblaciones con $p_{0_i}$, $N$ y $u_0$ diferentes. De
+dode se obtiene para cada uno de los tipos de agrupación y para cada momento
+$t_i$ el valor mínimo de pruebas necesario.
+
+```{r simulando__varios_p0, cache=TRUE, echo = F }
+
+nSim<- 100
 
 pI <- sample( c(0.001, 0.005,0.01), nSim, replace = T)
 threshold <- runif(nSim,0.7,0.8)
@@ -383,8 +427,6 @@ simData<-
             }
             
             p0 <- sum(sus$inf) / nrow(sus)
-            print(p0)
-
 
             if(i == maxIter){
                print("Stopped withoud converging to p0 = 1, reached iterations limit")
@@ -404,9 +446,9 @@ simData%>%write.csv("simData.csv", row.names = F)
 
 ```
 
-```{r graficando_resultado_simulaciones, cache=FALSE, echo = F }
-plotly::ggplotly(
-   simData%>%
+```{r graficando_resultado_simulaciones, cache=FALSE, echo = F, warning=F }
+
+simData%>%
    mutate(arrangeVar = factor(arrangeVar,
                               levels = c("sus","fam", "buil","nei", "infP"),
                               labels = c("ind","fam", "edif","vecin","prob_inf"),
@@ -415,20 +457,97 @@ plotly::ggplotly(
    filter(totalTestR < 0.95) %>%
    ggplot()+
    geom_point(aes(p0, totalTestR,col = arrangeVar), 
-              alpha = 0.75,
+              alpha = 0.5,
               shape = 19,
               size = 1)+
+   geom_smooth(aes(p0, totalTestR,col = arrangeVar),
+               method = "loess",
+               se = F,
+               formula = "y ~ x")+
    theme_minimal()+
+   theme(legend.position = "top")+
    scale_color_viridis_d(begin = 0.1,end=0.9, name = "Agrupado por")+
    xlab("Porcentaje infectado de la población  (%)")+
    ylab("Porcentaje necesario de pruebas  (%)")
-)
 
    
 ```
 
+Si bien existe disperción en los resultados, la realción que se había descrito
+previamente sobre la eficiencia de diferentes estrategias de orden o 
+agrupamiento previos al *pooling* se mantienen. Se muestra cómo al aumentar
+el porcentaje de contagios de la población la eficiencia del procedimiento 
+disminuye, per dicha disminución es mucho más marcada mientras menos precisa
+sea la agrupación en términos de acercar personas contagiadas y acercar personas
+no contagiadas. En este sentido podemos pensar en que el caso si agrupar es
+un límite superior y el caso ordenado por probabilidad es un límite inferior
+de las posibilidades que podría tener el procedimiento de ordenamiento previo
+al *pooling*.
 
-#### Analíticamente (y para el caso sencillo)
+Es imporante notar que tanto para el caso donde se conoce un $p_0$ o bien si 
+se conoce la distribución de $p_{ij}$ es posible determinar numéricamente el 
+valor de $m$ óptimo para realizar las pruebas. Además, en el caso sin agrupar
+se puede conocer directamente el valor de $m$ analíticamente.
+
+### El caso de Costa Rica
+
+En el país se han venido realizando estrategias de rastreo para identificar
+a personas con el virus en donde se buscan personas con cierta probabilidad
+de haber contraido el virus y se les aplica la prueba. Tomando los datos de las
+publicaciones de la cuenta de twitter del Ministerio de Salud ( @[msaludcr](https://twitter.com/msaludcr/) ) de descartados y confirmados 
+en varios días se observa que en general los valores acumulados de pruebas
+respecto a los valores acumulados de personas se encuentran entre $p_0 = 0.16$ y 
+$p_0 = 0.07%$. Esto implica que podría, según los datos reducirse el número de
+pruebas necesarias en un orden de magnitud de $40\%$ o más en depedencia de qué tan
+efectiva sea la identificación de $p_{ij}$ para cada indivíduo.
+
+```{r graficando_confirmados, echo = F, warning=F }
+tibble(confirmados=c(22,69,201,375,502,626,681,719,755, 815),
+       descartados=c(118,855,1684,3843,5533,6511,7784,8688,9209,11764),
+       fecha =c("2020 03 11",
+                "2020 03 18",
+                "2020 03 25",
+                "2020 04 01",
+                "2020 04 08",
+                "2020 04 15",
+                "2020 04 22",
+                "2020 04 30",
+                "2020 05 05",
+                "2020 05 13") %>% lubridate::ymd())%>%
+   mutate(p0 = confirmados/(confirmados +descartados))%>%
+   pivot_longer(cols= c(confirmados, descartados, p0),
+                names_to = "var",
+                values_to = "val")%>%
+   ggplot()+
+   geom_line(aes(fecha,val, col = var))+
+   scale_color_viridis_d(begin = 0.1,end=0.9, name = "Variable")+
+   xlab("Fecha")+
+   facet_grid(var~., scales = "free")+
+   theme_minimal()+
+   theme(legend.position = "none",
+         axis.title.y = element_blank())
+```
+
+Este resultado preliminar al menos indica que valdría la pena evaluar la 
+posibilidad de realizar el procedimiento para estas pruebas, es especial debido
+a que la tendencia de $p_0$ en las muestras de la CCSS es negativa. Además, 
+pareciera que en el caso de una reapertura tener capacidad de descartar
+rápidamente grandes grupos de personas pareciera útil para el control 
+epidemiológico.  Además, recientemente se indicó que el AyA se encuentra 
+realizando pruebasde presencia/ausencia de COVID19 en las aguas residuales. 
+Esto pareciera indicar que de alguna forma factible identificar en bajas 
+concentraciones si el virus se encuentra o no en una muestra.
+
+Respecto a la factibilidad de obtener un valor de $p_{ij}$ se entiende que
+se podría generar dicha estimación con base en la base de datos generada
+en la CCSS de los casos positivos y la información que se le recabe a cada una
+de las personas que se realicen la prueba tales como síntomas, lugar de 
+habitación etc. probablemente disponible ya en la aplicación *EDUS*. Esto 
+mediante algún método de aprendizaje estadístico (o aprendizaje de máquina).
+
+## Extras
+
+### Solución analítica del óptimo **m** para el caso de *pooling* sin ordenamiento
 
 Nótese que para $N$ suficientemente grande $g \approx N/m$; además, suponiendo
 dado que $p0$ se distribuye uniformemente en todos los grupos sabemos que la
@@ -440,21 +559,36 @@ minimizamos respecto a $m$.
 
 $$\underset{m}{\operatorname{argmin}}(\mathbf{E}(T)) = 
 \underset{m}{\operatorname{argmin}}((N - N(1-p_0)^m + N/m))=
-\sqrt{\frac{-1}{ln(1-p_0)(1-p_0)^m}}$$
+\sqrt{\frac{-1}{\log(1-p_0)(1-p_0)^m}}$$
 
 
-### Preguntas interesantes de responder
+### Preguntas interesantes por responder
+Además del desarrollo anteriormente hay muchas preguntas que pareciera 
+interesante tratar de responder y que podrían indicar un norte en caso de que
+se quisiera evaluar la posibilidad de emplear *pooling*. Algunas de ellas se 
+describen a continuación.
+
+* ¿Operativamente es factible realizar el procedimiento?
+
+* ¿Operativamente es factible realizar el procedimiento?
+
+* ¿Qué tan factible es generar una función de probabilidad en función de 
+probabilidad de infección con base en los datos disponibles en la CCSS?
 
 * ¿Qué pasa si usamos *pooling* no sólo en una primera instancia, sino de forma
 recursiva?
 
-* ¿Qué pasa si usamos tamaños de grupo diferentes en el procedimiento, más
+* ¿Qué pasa si usamos tamaños de grupo variable en el procedimiento: más
 pequeños para los casos donde la probabilidad de contagio es mayor y más 
 grandes donde la probabilidad de contagio es menor?
 
 ### Agradecimientos
+La elaboración de estas ideas no fue un trabajo individual, las siguientes 
+personas colaboraron tanto en recomendaciones respecto al concepto general 
+como en recomendaciones específicas sobre temas técnicos asociados al 
+desarrollo del modelo.
 
-En orden alfabético de apellido, 
+En orden alfabético de apellido:
 Juan José Leitón Montero, 
 Rubén Rodríquez Román, 
 Enrique Saures Apuy, 
