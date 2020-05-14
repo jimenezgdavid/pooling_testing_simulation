@@ -229,7 +229,7 @@ sus%>%
 
 ```
 
-### Procedimiento de pruebas en grupo (pooling)
+## Procedimiento de pruebas en grupo (pooling)
 
 El procedimiento de pooling según se entiende implica mezclar las muestras de
 $m$ cantidad de invidíduos en un grupo y detectar ausencia y presencia del
@@ -258,7 +258,7 @@ cantidad de personas descartadas por las pruebas grupales, que, al final es la
 variable más importante para poder reducir el número total de pruebas.
 
 Primero nos concentraremos en evaluar el efecto del tamaño del grupo en una
-población con una proporción constante de infectados $p0$. Para ello probaremos
+población con una proporción constante de infectados $p_0$. Para ello probaremos
 desde grupos de 2 hasta 64 personas (referenciando el artículo anteriormente
 mencionado). Para evaluar la intuición de que colocar indivíduos con un nivel
 similar de probabilidad de estar infectados o bien con cierta cercanía aumenta
@@ -547,10 +547,10 @@ mediante algún método de aprendizaje estadístico (o aprendizaje de máquina).
 
 ## Extras
 
-### Solución analítica del óptimo **m** para el caso de *pooling* sin ordenamiento
+### Solución analítica del óptimo $m$ para el caso de *pooling* sin ordenamiento
 
 Nótese que para $N$ suficientemente grande $g \approx N/m$; además, suponiendo
-dado que $p0$ se distribuye uniformemente en todos los grupos sabemos que la
+dado que $p_0$ se distribuye uniformemente en todos los grupos sabemos que la
 esperanza de individuos descartados puede ser definida como:
 $\mathbf{E} (d) = g m(1-p_0)^m   \approx  N(1-p_0)^m$
 
