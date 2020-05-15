@@ -30,6 +30,8 @@ aprovecha esta simulación para probar diferentes formas de organizar las prueba
 y el tamaño de estas para así de alguna forma "optimizar" el uso de estas,
 que equivale conceptualmente a un aumento en la capacidad de evaluación.
 
+Se encontró que la eficiencia del pooling
+
 ## Construcción de la población contagiada
 
 Para la construcción de la población se definen $N$ individuos que pertenecen a
@@ -235,26 +237,26 @@ El procedimiento de pooling según se entiende implica mezclar las muestras de
 $m$ cantidad de individuos en un grupo y detectar ausencia y presencia del
 virus. Este procedimiento es particularmente efectivo cuando se pueden descartar
 grandes cantidades de individuos, es decir, cuando la probabilidad de haya un
-individuo infectado en cada grupo es baja. De hecho. si esta probabilidad es 
+individuo infectado en cada grupo es baja. De hecho, si esta probabilidad es 
 alta, es probable que la cantidad de muestras necesarias sea mayor a la que se
-requeriría en el caso de hacer pruebas individuales. 
+requeriría en el caso de hacer pruebas individuales.
 
 Se aprovechará entonces la definición de población contagiada previamente 
 construida para determinar si uso de *pooling* para reducir el número total 
 de pruebas necesarias para identificar los casos positivos $T$ . 
 Si suponemos que solamente se efectuará
 una ronda de agrupaciones (procedimiento no recursivo) y además que los tamaños
-de los grupos $m$ son iguales entonces el total de muestras necesarias para 
+de los grupos $m$ son iguales, entonces el total de muestras necesarias se puede
 definir como $T = N - d +g$, donde: $d:=$ número de invividuos descartados
 mediante las pruebas grupales, $g:=$ número de grupos. 
 
-Queremos en dicho contexto saber evaluar cuál es el mínimo número esperado de
-$T$ para diferentes proporciones de infección de la población $p0$, diferentes 
-tamaños de grupo $m$ y también diferentes formas de ordenar los grupos. Este 
-último punto es interesante pues, intuitivamente se entiende que poner en grupos
+Queremos en dicho contexto evaluar cuál es el mínimo número esperado de
+$T$ para diferentes proporciones de infección de la población $p_0$, diferentes 
+tamaños de grupo $m$ y diferentes formas de ordenar los grupos. Este 
+último punto es interesante pues, intuitivamente, se entiende que poner en grupos
 aparte a las personas con alta probabilidad de estar infectados y a personas
 con baja probabilidad de estar infectados probablemente ayude a aumentar la 
-cantidad de personas descartadas por las pruebas grupales, que, al final es la
+cantidad de personas descartadas $d$ por las pruebas grupales, la cual es la
 variable más importante para poder reducir el número total de pruebas.
 
 Primero nos concentraremos en evaluar el efecto del tamaño del grupo en una
@@ -262,11 +264,11 @@ población con una proporción constante de infectados $p_0$. Para ello probarem
 desde grupos de 2 hasta 64 personas (referenciando el artículo anteriormente
 mencionado). Para evaluar la intuición de que colocar individuos con un nivel
 similar de probabilidad de estar infectados o bien con cierta cercanía aumenta
-la efectividad del procedimiento de *pooling* se ordenan los valores por familia
-por edificio, vecindad y también por probabilidad de estar infectados.
+la efectividad del procedimiento de *pooling* se ordenan los valores por 
+familia, por edificio, vecindad y también por probabilidad de estar infectados.
 
-Nótese que al ordenar por alguna de dichas clasificaciones pero para diferentes
-tamaños de grupo existe la probabilidad en algunos casos de que en una prueba 
+Nótese que al ordenar por alguna de dichas clasificaciones, pero para diferentes
+tamaños de grupo, existe la probabilidad en algunos casos de que en una prueba 
 se estén testeando más de una famila, edificio, etc.; sin embargo, se está 
 concentrando los casos positivos entre sí y también los casos negativos entre sí
 mejorando así la probabilidad de que existan grupos sin ningún caso. 
@@ -277,7 +279,7 @@ cierta medida es como emplear un oráculo que me indica la mejor aproximación
 a la probabilidad real de que un individuo esté infectado, por lo que los 
 resultados deben ser interpretados con precaución. Cabe resaltar que en este
 caso al ser una variable continua realmente estamos *ordenando* según $p_{ij}$
-para luego *recortar* esa poblacion ordenada.
+para luego *agrupar* esa poblacion ordenada.
 
 
 ```{r funcion_pooling, cache=FALSE, echo = F , warning=FALSE}
@@ -359,7 +361,7 @@ número de pruebas necesarias.
 
 En cierta medida los resultados anteriores confirman las intuiciones indicadas
 con anterioridad respecto al valor de ordenar o agrupar antes de realizar el
-procedimiento de *pooling*, hay que comprobar que estos hallazgos se mantienen
+procedimiento de *pooling*. Hay que comprobar que estos hallazgos se mantienen
 para distintos porcentajes de infección en la población.
 
 Para ello simulamos $100$ poblaciones con $p_{0_i}$, $N$ y $u_0$ diferentes. De
@@ -477,9 +479,9 @@ Si bien existe dispersión en los resultados, la relación que se había descrit
 previamente sobre la eficiencia de diferentes estrategias de orden o 
 agrupamiento previos al *pooling* se mantienen. Se muestra cómo al aumentar
 el porcentaje de contagios de la población la eficiencia del procedimiento 
-disminuye, per dicha disminución es mucho más marcada mientras menos precisa
+disminuye, pero dicha disminución es mucho más marcada mientras menos precisa
 sea la agrupación en términos de acercar personas contagiadas y acercar personas
-no contagiadas. En este sentido podemos pensar en que el caso si agrupar es
+no contagiadas. En este sentido podemos pensar que el caso sin agrupar es
 un límite superior y el caso ordenado por probabilidad es un límite inferior
 de las posibilidades que podría tener el procedimiento de ordenamiento previo
 al *pooling*.
@@ -497,7 +499,7 @@ de haber contraído el virus y se les aplica la prueba. Tomando los datos de las
 publicaciones de la cuenta de twitter del Ministerio de Salud ( @[msaludcr](https://twitter.com/msaludcr/) ) de descartados y confirmados 
 en varios días se observa que en general los valores acumulados de pruebas
 respecto a los valores acumulados de personas se encuentran entre $p_0 = 0.16$ y 
-$p_0 = 0.07%$. Esto implica que podría, según los datos reducirse el número de
+$p_0 = 0.07%$. Esto implica que podría, según los datos, reducirse el número de
 pruebas necesarias en un orden de magnitud de $40\%$ o más en dependencia de qué tan
 efectiva sea la identificación de $p_{ij}$ para cada individuo.
 
@@ -529,14 +531,13 @@ tibble(confirmados=c(22,69,201,375,502,626,681,719,755, 815),
 ```
 
 Este resultado preliminar al menos indica que valdría la pena evaluar la 
-posibilidad de realizar el procedimiento para estas pruebas, es especial debido
-a que la tendencia de $p_0$ en las muestras de la CCSS es negativa. Además, 
+posibilidad de realizar el procedimiento para estas pruebas, en especial debido
+a que la tendencia de $p_0$ en las muestras de la CCSS es a la baja. Además, 
 pareciera que en el caso de una reapertura tener capacidad de descartar
-rápidamente grandes grupos de personas pareciera útil para el control 
-epidemiológico.  Además, recientemente se indicó que el AyA se encuentra 
+rápidamente grandes grupos de personas es útil para el control 
+epidemiológico.  Adicionalmente, recientemente se indicó que el AyA se encuentra 
 realizando pruebas de presencia/ausencia de COVID19 en las aguas residuales. 
-Esto pareciera indicar que de alguna forma factible identificar en bajas 
-concentraciones si el virus se encuentra o no en una muestra.
+Esto indicaría que es factible identificar que el virus se encuentra o no en una muestra en bajas concentraciones.
 
 Respecto a la factibilidad de obtener un valor de $p_{ij}$ se entiende que
 se podría generar dicha estimación con base en la base de datos generada
@@ -552,26 +553,26 @@ mediante algún método de aprendizaje estadístico (o aprendizaje de máquina).
 Nótese que para $N$ suficientemente grande $g \approx N/m$; además, suponiendo
 dado que $p_0$ se distribuye uniformemente en todos los grupos sabemos que la
 esperanza de individuos descartados puede ser definida como:
-$\mathbf{E} (d) = g m(1-p_0)^m   \approx  N(1-p_0)^m$
+$\mathbb{E} (d) = g\, m\,(1-p_0)^m   \approx  N(1-p_0)^m$
 
 Para obtener el mínimo número esperado de $T$, dado un $p_0$ entonces 
 minimizamos respecto a $m$.
 
-$$\underset{m}{\operatorname{argmin}}(\mathbf{E}(T)) = 
+$$\underset{m}{\operatorname{argmin}}(\mathbb{E}(T)) = 
 \underset{m}{\operatorname{argmin}}((N - N(1-p_0)^m + N/m))=
 \sqrt{\frac{-1}{\log(1-p_0)(1-p_0)^m}}$$
 
 
 ### Preguntas interesantes por responder
-Además del desarrollo anteriormente hay muchas preguntas que pareciera 
+Además del desarrollo anteriormente expuesto, hay muchas preguntas que pareciera 
 interesante tratar de responder y que podrían indicar un norte en caso de que
 se quisiera evaluar la posibilidad de emplear *pooling*. Algunas de ellas se 
 describen a continuación.
 
 * ¿Operativamente es factible realizar el procedimiento?
 
-* ¿Qué tan factible es generar una función de probabilidad en función de 
-probabilidad de infección con base en los datos disponibles en la CCSS?
+* ¿Qué tan factible es generar una función de probabilidad de infección 
+con base en los datos disponibles en la CCSS?
 
 * ¿Qué pasa si usamos *pooling* no sólo en una primera instancia, sino de forma
 recursiva?
