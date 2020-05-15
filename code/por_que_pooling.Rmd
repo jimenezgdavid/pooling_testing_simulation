@@ -17,7 +17,7 @@ library(tidyverse)
 Esta idea nació como una inquietud a partir un articulo sobre el trabajo de
 Dina Berenbaum (disponible en el medio 
 [Times of Israel](https://www.timesofisrael.com/to-ease-global-virus-test-bottleneck-israeli-scientists-suggest-pooling-samples/) ),
-donde se indica la posibilidad de emplear pruebas no sólo a indivíduos con 
+donde se indica la posibilidad de emplear pruebas no sólo a individuos con 
 potencial de estar infectados, sino a grupos de ellos. Lo más intrigante de
 este efoque radica en lo sencillo del concepto. Con esto en mente se trata 
 de evaluar las propiedades numéricas de este tipo de tests en una población
@@ -33,30 +33,30 @@ que equivale conceptualmente a un aumento en la capacidad de evaluación.
 ## Construcción de la población contagiada
 
 Para la construcción de la población se definen $N$ individuos que pertenecen a
-familias, que residen en edificios, que están construidos en vencindarios. Se 
+familias, que residen en edificios, que están construidos en vecindarios. Se 
 define de forma arbitraria que el número de invididuos por familia es $5$,
-el número de familas por edificio es $2$ y el número de de edificios por 
-vencindario es de $10$. Además, se define una tasa inicial de estos indivíduos
+el número de familias por edificio es $2$ y el número de edificios por 
+vecindario es de $10$. Además, se define una tasa inicial de estos individuos
 que están contagiados $p_{0i}$ que son diseminados aleatoriamente en la 
 población.
 
 Es importante notar que esta población tiene las características de una fase
 inicial de la epidemia donde los casos se distribuyen al azar. Queremos que,
 al igual que en una población normal los casos de alguna forma se agrupen cerca
-de los grupos sociales donde interactuan. Para ello construimos una función de 
+de los grupos sociales donde interactúan. Para ello construimos una función de 
 probabilidad de contagio.
 
 Esta función emplea el número de casos contagiados en los grupos a los que 
-pertenece cada indivíduo y además agrega un componente de aleatoriedad. Por 
-facilidad e interpletabilidad se emplea una función logística para calcular
+pertenece cada individuo y además agrega un componente de aleatoriedad. Por 
+facilidad e interpretabilidad se emplea una función logística para calcular
 dicha probabilidad.
 
 $$ p_{ij} = \frac{1}{1+e^{-l_{ij}}} $$
 $$ l_{ij} = \alpha_{fam}*n_{fam_{ij}} + \alpha_{edi}*n_{edi_{ij}}+\alpha_{vec_{ij}}*n_{vec} + \alpha_{p_{0}}*p_{0_i} $$
 Donde se emplea para el paso de tiempo que se está analizando $t_i$ 
 el porcentaje de personas infectadas $n_x$ de cada uno de los grupos a los
-que pertenece el individuo $j$, el porcentaje todal de contagiados $p_{0_i}$ y 
-ciertos pesos $\alpha_x$ para así determinar la probabilidad de que el el 
+que pertenece el individuo $j$, el porcentaje total de contagiados $p_{0_i}$ y 
+ciertos pesos $\alpha_x$ para así determinar la probabilidad de que el 
 individuo $j$ esté contagiado en el siguiente paso de tiempo $t_{i+1}$.
 
 ```{r funcion_probabilidad_contagio, cache=FALSE, echo = FALSE}
@@ -170,7 +170,7 @@ un umbral definido como $u_{ij} = u_0 + \mathcal{N}(\mu,\sigma )$ donde $u_0$
 es un valor base y a este se le agrega el valor de una distribución normal. 
 Si en efecto
 se encuentra por encima del umbral o bien ya estaba contagiado la condición del
-indivíduo hasta la última iteración será como contagiado. Nótese que en este
+individuo hasta la última iteración será como contagiado. Nótese que en este
 modelo no se tienen casos recuperados ya que la finalidad es luego, para 
 poblaciones con diferentes niveles de contagio, evaluar el uso de la metodología
 anteriormente mencionada.
@@ -232,17 +232,17 @@ sus%>%
 ## Procedimiento de pruebas en grupo (pooling)
 
 El procedimiento de pooling según se entiende implica mezclar las muestras de
-$m$ cantidad de invidíduos en un grupo y detectar ausencia y presencia del
+$m$ cantidad de individuos en un grupo y detectar ausencia y presencia del
 virus. Este procedimiento es particularmente efectivo cuando se pueden descartar
-grandes cantidades de invidíduos, es decir, cuando la probabilidad de haya un
-indivíduo infectado en cada grupo es baja. De hecho. si esta probabilidad es 
+grandes cantidades de individuos, es decir, cuando la probabilidad de haya un
+individuo infectado en cada grupo es baja. De hecho. si esta probabilidad es 
 alta, es probable que la cantidad de muestras necesarias sea mayor a la que se
 requeriría en el caso de hacer pruebas individuales. 
 
 Se aprovechará entonces la definición de población contagiada previamente 
-construída para determinar si uso de *pooling* para reducir el número total 
+construida para determinar si uso de *pooling* para reducir el número total 
 de pruebas necesarias para identificar los casos positivos $T$ . 
-Si suponemos que sólamente se efectuará
+Si suponemos que solamente se efectuará
 una ronda de agrupaciones (procedimiento no recursivo) y además que los tamaños
 de los grupos $m$ son iguales entonces el total de muestras necesarias para 
 definir como $T = N - d +g$, donde: $d:=$ número de invividuos descartados
@@ -260,10 +260,10 @@ variable más importante para poder reducir el número total de pruebas.
 Primero nos concentraremos en evaluar el efecto del tamaño del grupo en una
 población con una proporción constante de infectados $p_0$. Para ello probaremos
 desde grupos de 2 hasta 64 personas (referenciando el artículo anteriormente
-mencionado). Para evaluar la intuición de que colocar indivíduos con un nivel
+mencionado). Para evaluar la intuición de que colocar individuos con un nivel
 similar de probabilidad de estar infectados o bien con cierta cercanía aumenta
 la efectividad del procedimiento de *pooling* se ordenan los valores por familia
-por edificio, vencindad y también por probabilidad de estar infectados.
+por edificio, vecindad y también por probabilidad de estar infectados.
 
 Nótese que al ordenar por alguna de dichas clasificaciones pero para diferentes
 tamaños de grupo existe la probabilidad en algunos casos de que en una prueba 
@@ -271,12 +271,12 @@ se estén testeando más de una famila, edificio, etc.; sin embargo, se está
 concentrando los casos positivos entre sí y también los casos negativos entre sí
 mejorando así la probabilidad de que existan grupos sin ningún caso. 
 
-Otro punto importante de tratar es que que estamos usando la variable $p_{ij}$ 
+Otro punto importante de tratar es que estamos usando la variable $p_{ij}$ 
 que es la variable con la que de hecho se construyó la simulación. Esto en 
 cierta medida es como emplear un oráculo que me indica la mejor aproximación
-a la probabilidad real de que un indivíduo esté infectado, por lo que los 
+a la probabilidad real de que un individuo esté infectado, por lo que los 
 resultados deben ser interpretados con precaución. Cabe resaltar que en este
-caso al ser una variable contínua realmente estamos *ordenando* según $p_{ij}$
+caso al ser una variable continua realmente estamos *ordenando* según $p_{ij}$
 para luego *recortar* esa poblacion ordenada.
 
 
@@ -339,16 +339,16 @@ groupTest%>%
    geom_point(aes(groupSize, totalTest,col = arrangeVar))+
    geom_line(aes(groupSize, totalTest,col = arrangeVar))+
    theme_minimal()+
-   scale_color_viridis_d(begin = 0.1,end=0.9, name = "Variable de agrupación")+
+   scale_color_viridis_d(begin = 0.1,end=0.9, name = "Agrupado por")+
    theme(legend.position = "top")+
-   xlab("Número de indivíduos por grupo")+
+   xlab("Número de individuos por grupo")+
    ylab("Número total de pruebas necesarias")
    
 ```
 
 En la figura anterior se muestra cómo, para la gran mayoría de casos, existe 
 una disminución significativa del número de pruebas necesarias respecto a la
-condición de analizar a todos los invidíduos. Puede observarse que el caso base 
+condición de analizar a todos los individuos. Puede observarse que el caso base 
 de *pooling* donde no ser ordena tiene los peores resultados mientas que el
 mejor resultado se obtiene empleando $p_{ij}$ para ordenar.
 
@@ -359,11 +359,11 @@ número de pruebas necesarias.
 
 En cierta medida los resultados anteriores confirman las intuiciones indicadas
 con anterioridad respecto al valor de ordenar o agrupar antes de realizar el
-procedimiento de *pooling*, hay que comprobar que estos hayazgos se mantienen
+procedimiento de *pooling*, hay que comprobar que estos hallazgos se mantienen
 para distintos porcentajes de infección en la población.
 
 Para ello simulamos $100$ poblaciones con $p_{0_i}$, $N$ y $u_0$ diferentes. De
-dode se obtiene para cada uno de los tipos de agrupación y para cada momento
+donde se obtiene para cada uno de los tipos de agrupación y para cada momento
 $t_i$ el valor mínimo de pruebas necesario.
 
 ```{r simulando__varios_p0, cache=TRUE, echo = F }
@@ -473,7 +473,7 @@ simData%>%
    
 ```
 
-Si bien existe disperción en los resultados, la realción que se había descrito
+Si bien existe dispersión en los resultados, la relación que se había descrito
 previamente sobre la eficiencia de diferentes estrategias de orden o 
 agrupamiento previos al *pooling* se mantienen. Se muestra cómo al aumentar
 el porcentaje de contagios de la población la eficiencia del procedimiento 
@@ -484,7 +484,7 @@ un límite superior y el caso ordenado por probabilidad es un límite inferior
 de las posibilidades que podría tener el procedimiento de ordenamiento previo
 al *pooling*.
 
-Es imporante notar que tanto para el caso donde se conoce un $p_0$ o bien si 
+Es importante notar que tanto para el caso donde se conoce un $p_0$ o bien si 
 se conoce la distribución de $p_{ij}$ es posible determinar numéricamente el 
 valor de $m$ óptimo para realizar las pruebas. Además, en el caso sin agrupar
 se puede conocer directamente el valor de $m$ analíticamente.
@@ -493,13 +493,13 @@ se puede conocer directamente el valor de $m$ analíticamente.
 
 En el país se han venido realizando estrategias de rastreo para identificar
 a personas con el virus en donde se buscan personas con cierta probabilidad
-de haber contraido el virus y se les aplica la prueba. Tomando los datos de las
+de haber contraído el virus y se les aplica la prueba. Tomando los datos de las
 publicaciones de la cuenta de twitter del Ministerio de Salud ( @[msaludcr](https://twitter.com/msaludcr/) ) de descartados y confirmados 
 en varios días se observa que en general los valores acumulados de pruebas
 respecto a los valores acumulados de personas se encuentran entre $p_0 = 0.16$ y 
 $p_0 = 0.07%$. Esto implica que podría, según los datos reducirse el número de
-pruebas necesarias en un orden de magnitud de $40\%$ o más en depedencia de qué tan
-efectiva sea la identificación de $p_{ij}$ para cada indivíduo.
+pruebas necesarias en un orden de magnitud de $40\%$ o más en dependencia de qué tan
+efectiva sea la identificación de $p_{ij}$ para cada individuo.
 
 ```{r graficando_confirmados, echo = F, warning=F }
 tibble(confirmados=c(22,69,201,375,502,626,681,719,755, 815),
@@ -534,7 +534,7 @@ a que la tendencia de $p_0$ en las muestras de la CCSS es negativa. Además,
 pareciera que en el caso de una reapertura tener capacidad de descartar
 rápidamente grandes grupos de personas pareciera útil para el control 
 epidemiológico.  Además, recientemente se indicó que el AyA se encuentra 
-realizando pruebasde presencia/ausencia de COVID19 en las aguas residuales. 
+realizando pruebas de presencia/ausencia de COVID19 en las aguas residuales. 
 Esto pareciera indicar que de alguna forma factible identificar en bajas 
 concentraciones si el virus se encuentra o no en una muestra.
 
@@ -570,8 +570,6 @@ describen a continuación.
 
 * ¿Operativamente es factible realizar el procedimiento?
 
-* ¿Operativamente es factible realizar el procedimiento?
-
 * ¿Qué tan factible es generar una función de probabilidad en función de 
 probabilidad de infección con base en los datos disponibles en la CCSS?
 
@@ -582,16 +580,16 @@ recursiva?
 pequeños para los casos donde la probabilidad de contagio es mayor y más 
 grandes donde la probabilidad de contagio es menor?
 
-### Agradecimientos
+### Colaboradores
 La elaboración de estas ideas no fue un trabajo individual, las siguientes 
-personas colaboraron tanto en recomendaciones respecto al concepto general 
+personas colaboraron tanto la conceptualización general 
 como en recomendaciones específicas sobre temas técnicos asociados al 
-desarrollo del modelo.
+desarrollo del modelo y del documento.
 
 En orden alfabético de apellido:
 Juan José Leitón Montero, 
 Rubén Rodríquez Román, 
 Enrique Saures Apuy, 
-Josué Vargas, 
+Josué Vargas Amador, 
 
 
