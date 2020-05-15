@@ -30,8 +30,6 @@ aprovecha esta simulación para probar diferentes formas de organizar las prueba
 y el tamaño de estas para así de alguna forma "optimizar" el uso de estas,
 que equivale conceptualmente a un aumento en la capacidad de evaluación.
 
-Se encontró que la eficiencia del pooling
-
 ## Construcción de la población contagiada
 
 Para la construcción de la población se definen $N$ individuos que pertenecen a
